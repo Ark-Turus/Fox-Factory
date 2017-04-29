@@ -13,6 +13,8 @@ import ninja.invisiblecode.foxfactory.key.ClassKey;
 
 public final class ClassFoxFactory<Product> extends FoxFactory<Class<?>, Product> {
 
+	private boolean superclasses;
+
 	/**
 	 * 
 	 * @param product
@@ -26,8 +28,11 @@ public final class ClassFoxFactory<Product> extends FoxFactory<Class<?>, Product
 	 *            try to produce a product using the key'ssuperclass.
 	 * @return
 	 */
-	private ClassFoxFactory(final Class<Product> product, final Supplier<Collection<Class<? extends Product>>> source) {
+
+	private ClassFoxFactory(final Class<Product> product, final Supplier<Collection<Class<? extends Product>>> source,
+			boolean superclasses) {
 		super(product, source);
+		this.superclasses = superclasses;
 	}
 
 	@Override
@@ -42,6 +47,21 @@ public final class ClassFoxFactory<Product> extends FoxFactory<Class<?>, Product
 		ClassKey[] keys = product.type.getAnnotationsByType(ClassKey.class);
 		for (ClassKey key : keys)
 			setProduct(key.value(), product);
+	}
+
+	@Override
+	protected ProductInfo<? extends Product> getProduct(Class<?> key) {
+		if (!superclasses)
+			return super.getProduct(key);
+		ProductInfo<? extends Product> info = super.getProduct(key);
+		if (info != null)
+			return info;
+		while ((key = key.getSuperclass()) != null) {
+			info = super.getProduct(key);
+			if (info != null)
+				return info;
+		}
+		return null;
 	}
 
 }
