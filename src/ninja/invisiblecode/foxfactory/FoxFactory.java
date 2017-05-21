@@ -99,14 +99,14 @@ public abstract class FoxFactory<Key, Product> {
 
 	protected void setDefaultProduct(ProductInfo<? extends Product> product) {
 		if (products.containsKey(null))
-			status.update(Status.WARNING, "Default handler " + products.get(null).type.getSimpleName()
+			status.update(Status.WARNING, "Default product " + products.get(null).type.getSimpleName()
 					+ " already exists. Overwriting with " + product.type.getSimpleName());
 		products.put(null, product);
 	}
 
 	protected void setProduct(Key key, ProductInfo<? extends Product> product) {
 		if (products.containsKey(key))
-			status.update(Status.WARNING, "Handler " + products.get(key).type.getSimpleName()
+			status.update(Status.WARNING, "Product " + products.get(key).type.getSimpleName()
 					+ " already exists for key " + key + ". Overwriting with " + product.type.getSimpleName());
 		products.put(key, product);
 	}
@@ -125,10 +125,10 @@ public abstract class FoxFactory<Key, Product> {
 			return (Product) info.constructor.newInstance(args);
 		}
 		catch (IllegalAccessException e) {
-			throw new RuntimeException("Handler constructor not found. Has class file changed?", e);
+			throw new RuntimeException("Product constructor inaccessible. Check security permissions.", e);
 		}
 		catch (InstantiationException e) {
-			throw new RuntimeException("Handler constructor failed. Has class file changed?", e);
+			throw new RuntimeException("Product constructor failed. Has class file changed?", e);
 		}
 		catch (IllegalArgumentException | InvocationTargetException e) {
 			throw new RuntimeException(e);
