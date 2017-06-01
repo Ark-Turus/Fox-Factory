@@ -1,9 +1,11 @@
 package ninja.invisiblecode.foxfactory;
 
+import java.lang.reflect.Constructor;
 import java.util.Collection;
 import java.util.function.Supplier;
 
 import ninja.invisiblecode.foxfactory.key.ClassKey;
+import ninja.invisiblecode.foxfactory.key.NamedClassKey;
 
 /**
  * Fox Factory that creates associated products based on a class key.
@@ -26,12 +28,16 @@ public final class ClassFoxFactory<Product> extends FoxFactory<Class<?>, Product
 	 * @param superclasses
 	 *            If there is no valid product for the provided key Class, will
 	 *            try to produce a product using the key'ssuperclass.
-	 * @return
 	 */
 
-	private ClassFoxFactory(final Class<Product> product, final Supplier<Collection<Class<? extends Product>>> source,
+	public ClassFoxFactory(final Class<Product> product, final Supplier<Collection<Class<? extends Product>>> source,
 			boolean superclasses) {
-		super(product, source);
+		this(product, null, source, superclasses);
+	}
+
+	public ClassFoxFactory(final Class<Product> product, String name,
+			final Supplier<Collection<Class<? extends Product>>> source, boolean superclasses) {
+		super(product, name, source);
 		this.superclasses = superclasses;
 	}
 
@@ -39,14 +45,24 @@ public final class ClassFoxFactory<Product> extends FoxFactory<Class<?>, Product
 	protected <T extends Product> boolean hasAnnotations(Class<T> product) {
 		if (product.isAnnotationPresent(ClassKey.class))
 			return true;
+		if (product.isAnnotationPresent(NamedClassKey.class))
+			return true;
 		return false;
 	}
 
 	@Override
-	protected void parseAnnotations(ProductInfo<? extends Product> product) {
-		ClassKey[] keys = product.type.getAnnotationsByType(ClassKey.class);
-		for (ClassKey key : keys)
-			setProduct(key.value(), product);
+	protected <T extends Product> void parseAnnotations(Class<T> type, Constructor<?> cons) {
+		{
+			ClassKey[] keys = type.getAnnotationsByType(ClassKey.class);
+			for (ClassKey key : keys)
+				setProduct(key.value(), new ProductInfo<>(type, cons));
+		}
+		if (name != null) {
+			NamedClassKey[] keys = type.getAnnotationsByType(NamedClassKey.class);
+			for (NamedClassKey key : keys)
+				if (key.name().equals(name))
+					setProduct(key.value(), new ProductInfo<>(type, cons));
+		}
 	}
 
 	@Override

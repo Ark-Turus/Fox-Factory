@@ -13,16 +13,20 @@ import ninja.invisiblecode.foxfactory.annotations.Fox;
 import ninja.invisiblecode.foxfactory.annotations.NoFox;
 import ninja.invisiblecode.foxfactory.exceptions.MissingAnnotationException;
 import ninja.invisiblecode.foxfactory.key.DefaultKey;
+import ninja.invisiblecode.foxfactory.key.NamedDefaultKey;
 
 public abstract class FoxFactory<Key, Product> {
 
 	protected static final Status						status		= new Status.SystemStatus();
 
 	protected Map<Key, ProductInfo<? extends Product>>	products	= new HashMap<>();
+	protected String									name;
 
-	protected <T extends Product> FoxFactory(Class<Product> product, Supplier<Collection<Class<? extends T>>> source) {
+	protected <T extends Product> FoxFactory(Class<Product> product, String name,
+			Supplier<Collection<Class<? extends T>>> source) {
+		this.name = name;
 		if (!product.isAnnotationPresent(Fox.class))
-			throw new MissingAnnotationException("FoxFactory requires");
+			throw new MissingAnnotationException("FoxFactory requires @Fox annotation on product.");
 		for (Class<? extends T> pro : source.get()) {
 			if (Modifier.isInterface(pro.getModifiers()))
 				continue;
@@ -30,7 +34,8 @@ public abstract class FoxFactory<Key, Product> {
 				continue;
 			if (pro.isAnnotationPresent(NoFox.class))
 				continue;
-			if (!(pro.isAnnotationPresent(DefaultKey.class) || hasAnnotations(pro))) {
+			if (!(pro.isAnnotationPresent(DefaultKey.class) || pro.isAnnotationPresent(NamedDefaultKey.class)
+					|| hasAnnotations(pro))) {
 				status.update(Status.WARNING,
 						"[" + pro.getSimpleName() + "] missing key annotation. Use @NoFox to silence this warning.");
 				continue;
@@ -42,13 +47,18 @@ public abstract class FoxFactory<Key, Product> {
 				continue;
 			}
 			if (pro.isAnnotationPresent(DefaultKey.class))
-				setDefaultProduct(new ProductInfo(pro, cons));
-			else
-				parseAnnotations(new ProductInfo(pro, cons));
+				setProduct(null, new ProductInfo<>(pro, null, cons));
+			if (name != null) {
+				NamedDefaultKey[] keys = pro.getAnnotationsByType(NamedDefaultKey.class);
+				for (NamedDefaultKey key : keys)
+					if (key.name().equals(name))
+						setProduct(null, new ProductInfo<>(pro, key.name(), cons));
+			}
+			parseAnnotations(pro, cons);
 		}
 	}
 
-	protected abstract void parseAnnotations(ProductInfo<? extends Product> productInfo);
+	protected abstract <T extends Product> void parseAnnotations(Class<T> pro, Constructor<?> cons);
 
 	@SuppressWarnings("unchecked")
 	private final <T extends Product> Constructor<T> findConstructor(Class<T> pro, Class<Product> product) {
@@ -97,17 +107,25 @@ public abstract class FoxFactory<Key, Product> {
 	 */
 	protected abstract <T extends Product> boolean hasAnnotations(Class<T> product);
 
-	protected void setDefaultProduct(ProductInfo<? extends Product> product) {
-		if (products.containsKey(null))
-			status.update(Status.WARNING, "Default product " + products.get(null).type.getSimpleName()
-					+ " already exists. Overwriting with " + product.type.getSimpleName());
-		products.put(null, product);
-	}
-
-	protected void setProduct(Key key, ProductInfo<? extends Product> product) {
-		if (products.containsKey(key))
-			status.update(Status.WARNING, "Product " + products.get(key).type.getSimpleName()
-					+ " already exists for key " + key + ". Overwriting with " + product.type.getSimpleName());
+	protected <T extends Product> void setProduct(Key key, ProductInfo<T> product) {
+		if (products.containsKey(key)) {
+			ProductInfo<? extends Product> old = products.get(key);
+			if (old.name == null) {
+				if (product.name == null)
+					status.update(Status.WARNING,
+							"Product [" + old.type.getSimpleName() + "] already exists for "
+									+ (key != null ? key : "default") + ". Overwriting with ["
+									+ product.type.getSimpleName() + "].");
+			} else {
+				if (product.name == null)
+					return;
+				else
+					status.update(Status.WARNING,
+							"Product [" + old.type.getSimpleName() + "] already exists for " + product.name + "."
+									+ (key != null ? key : "default") + ". Overwriting with ["
+									+ product.type.getSimpleName() + "].");
+			}
+		}
 		products.put(key, product);
 	}
 
