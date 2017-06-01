@@ -148,7 +148,10 @@ public abstract class FoxFactory<Key, Product> {
 		catch (InstantiationException e) {
 			throw new RuntimeException("Product constructor failed. Has class file changed?", e);
 		}
-		catch (IllegalArgumentException | InvocationTargetException e) {
+		catch (InvocationTargetException e) {
+			throw new RuntimeException(e.getCause());
+		}
+		catch (IllegalArgumentException e) {
 			throw new RuntimeException(e);
 		}
 	}
