@@ -8,7 +8,9 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Repeatable(ClassKeys.class)
-public @interface ClassKey {
+@Repeatable(ClassArrayKeys.class)
+public @interface ClassArrayKey {
 	Class<?> value();
+
+	int dimensions() default 1;
 }

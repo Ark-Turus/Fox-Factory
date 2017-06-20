@@ -1,3 +1,4 @@
+
 package ninja.invisiblecode.foxfactory.key;
 
 import java.lang.annotation.ElementType;
@@ -8,7 +9,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Repeatable(ClassKeys.class)
-public @interface ClassKey {
-	Class<?> value();
+@Repeatable(DefaultClassArrayKeys.class)
+public @interface DefaultClassArrayKey {
+	int dimension() default 1;
 }

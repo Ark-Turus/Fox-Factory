@@ -1,4 +1,3 @@
-
 package ninja.invisiblecode.foxfactory.key;
 
 import java.lang.annotation.ElementType;
